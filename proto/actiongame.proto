@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+option go_package = "./actiongame";
+
+package actiongame;
+
+service Game {
+  rpc Hello (HelloReq) returns (HelloRes);
+  rpc JoinSession (JoinReq) returns (GameSession);
+}
+
+message HelloReq {
+  string name = 1;
+}
+
+message HelloRes {
+  string msg = 1;
+}
+
+message JoinReq {
+  string name = 1;
+}
+
+message GameSession {
+  string id = 1;
+}

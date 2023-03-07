@@ -9,11 +9,11 @@ service Game {
   rpc Hello(HelloReq) returns (HelloRes);
 
   // global
-  rpc GetUser(GetUserReq) returns (GetUserRes);
+  rpc GetPlayer(GetPlayerReq) returns (GetPlayerRes);
 
   // game
-  rpc Join(JoinReq) returns (stream UserConn);
-  rpc Move(stream Pos) returns (stream UserMove);
+  rpc Join(JoinReq) returns (stream PlayerConn);
+  rpc Move(stream Pos) returns (stream PlayerMove);
 }
 
 // basic
@@ -30,11 +30,11 @@ message HelloRes {
 
 // global
 
-message GetUserReq {
+message GetPlayerReq {
   uint32 id = 1;
 }
 
-message GetUserRes {
+message GetPlayerRes {
   uint32 id = 1;
   string name = 2;
 }
@@ -48,11 +48,12 @@ message JoinReq {
 enum ConnState {
   JOIN = 0;
   LEAVE = 1;
+  SPAWN = 2;
 }
 
-message UserConn {
-  ConnState type = 1;
-  uint32 id = 2;
+message PlayerConn {
+  uint32 id = 1;
+  ConnState type = 2;
 }
 
 message Pos {
@@ -64,7 +65,7 @@ message Pos {
   float rz = 6;
 }
 
-message UserMove {
+message PlayerMove {
   uint32 id = 1;
   Pos pos = 2;
 }

@@ -17,6 +17,7 @@ type World struct {
 }
 
 type Player struct {
+	id   Uid
 	name string
 }
 
@@ -25,8 +26,8 @@ type PlayerConn struct {
 	state pb.ConnState
 }
 
-func (c *PlayerConn) ToPB() *pb.UserConn {
-	return &pb.UserConn{
+func (c *PlayerConn) ToPB() *pb.PlayerConn {
+	return &pb.PlayerConn{
 		Type: pb.ConnState(c.state),
 		Id:   uint32(c.id),
 	}
@@ -43,25 +44,33 @@ func GetWorld() *World {
 	return world
 }
 
-func Join(name string) (*World, *PlayerConn) {
-	// todo: いい感じにする
-	var id Uid
+func GenId() (id Uid) {
 	for {
 		id = Uid(rand.Uint32())
 		if _, ok := world.players[id]; !ok {
-			break
+			return
 		}
 	}
-	world.players[id] = &Player{name}
-	conn := &PlayerConn{id, pb.ConnState_JOIN}
-	fmt.Println("joined", name, "<>", world.players)
+}
+
+func Register(name string) *Player {
+	id := GenId()
+	player := &Player{id, name}
+	world.players[id] = player
+	return player
+}
+
+func Join(player *Player) *PlayerConn {
+	// todo: いい感じにする
+	conn := &PlayerConn{player.id, pb.ConnState_JOIN}
+	fmt.Println("joined", player.name, "<>", world.players)
 	world.room.Pub(conn)
-	return world, conn // connはserverstream用
+	return conn
 }
 
 func Leave(id Uid) {
-	name := world.players[id].name
+	player := world.players[id]
 	delete(world.players, id)
-	fmt.Println("leave", name, "<>", world.players)
+	fmt.Println("leave", player.name, "<>", world.players)
 	world.room.Pub(&PlayerConn{id, pb.ConnState_LEAVE})
 }

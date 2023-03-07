@@ -19,10 +19,10 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	Game_Hello_FullMethodName   = "/proto.Game/Hello"
-	Game_GetUser_FullMethodName = "/proto.Game/GetUser"
-	Game_Join_FullMethodName    = "/proto.Game/Join"
-	Game_Move_FullMethodName    = "/proto.Game/Move"
+	Game_Hello_FullMethodName     = "/proto.Game/Hello"
+	Game_GetPlayer_FullMethodName = "/proto.Game/GetPlayer"
+	Game_Join_FullMethodName      = "/proto.Game/Join"
+	Game_Move_FullMethodName      = "/proto.Game/Move"
 )
 
 // GameClient is the client API for Game service.
@@ -32,7 +32,7 @@ type GameClient interface {
 	// basic
 	Hello(ctx context.Context, in *HelloReq, opts ...grpc.CallOption) (*HelloRes, error)
 	// global
-	GetUser(ctx context.Context, in *GetUserReq, opts ...grpc.CallOption) (*GetUserRes, error)
+	GetPlayer(ctx context.Context, in *GetPlayerReq, opts ...grpc.CallOption) (*GetPlayerRes, error)
 	// game
 	Join(ctx context.Context, in *JoinReq, opts ...grpc.CallOption) (Game_JoinClient, error)
 	Move(ctx context.Context, opts ...grpc.CallOption) (Game_MoveClient, error)
@@ -55,9 +55,9 @@ func (c *gameClient) Hello(ctx context.Context, in *HelloReq, opts ...grpc.CallO
 	return out, nil
 }
 
-func (c *gameClient) GetUser(ctx context.Context, in *GetUserReq, opts ...grpc.CallOption) (*GetUserRes, error) {
-	out := new(GetUserRes)
-	err := c.cc.Invoke(ctx, Game_GetUser_FullMethodName, in, out, opts...)
+func (c *gameClient) GetPlayer(ctx context.Context, in *GetPlayerReq, opts ...grpc.CallOption) (*GetPlayerRes, error) {
+	out := new(GetPlayerRes)
+	err := c.cc.Invoke(ctx, Game_GetPlayer_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +80,7 @@ func (c *gameClient) Join(ctx context.Context, in *JoinReq, opts ...grpc.CallOpt
 }
 
 type Game_JoinClient interface {
-	Recv() (*UserConn, error)
+	Recv() (*PlayerConn, error)
 	grpc.ClientStream
 }
 
@@ -88,8 +88,8 @@ type gameJoinClient struct {
 	grpc.ClientStream
 }
 
-func (x *gameJoinClient) Recv() (*UserConn, error) {
-	m := new(UserConn)
+func (x *gameJoinClient) Recv() (*PlayerConn, error) {
+	m := new(PlayerConn)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -107,7 +107,7 @@ func (c *gameClient) Move(ctx context.Context, opts ...grpc.CallOption) (Game_Mo
 
 type Game_MoveClient interface {
 	Send(*Pos) error
-	Recv() (*UserMove, error)
+	Recv() (*PlayerMove, error)
 	grpc.ClientStream
 }
 
@@ -119,8 +119,8 @@ func (x *gameMoveClient) Send(m *Pos) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *gameMoveClient) Recv() (*UserMove, error) {
-	m := new(UserMove)
+func (x *gameMoveClient) Recv() (*PlayerMove, error) {
+	m := new(PlayerMove)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -134,7 +134,7 @@ type GameServer interface {
 	// basic
 	Hello(context.Context, *HelloReq) (*HelloRes, error)
 	// global
-	GetUser(context.Context, *GetUserReq) (*GetUserRes, error)
+	GetPlayer(context.Context, *GetPlayerReq) (*GetPlayerRes, error)
 	// game
 	Join(*JoinReq, Game_JoinServer) error
 	Move(Game_MoveServer) error
@@ -148,8 +148,8 @@ type UnimplementedGameServer struct {
 func (UnimplementedGameServer) Hello(context.Context, *HelloReq) (*HelloRes, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Hello not implemented")
 }
-func (UnimplementedGameServer) GetUser(context.Context, *GetUserReq) (*GetUserRes, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetUser not implemented")
+func (UnimplementedGameServer) GetPlayer(context.Context, *GetPlayerReq) (*GetPlayerRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetPlayer not implemented")
 }
 func (UnimplementedGameServer) Join(*JoinReq, Game_JoinServer) error {
 	return status.Errorf(codes.Unimplemented, "method Join not implemented")
@@ -188,20 +188,20 @@ func _Game_Hello_Handler(srv interface{}, ctx context.Context, dec func(interfac
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Game_GetUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetUserReq)
+func _Game_GetPlayer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetPlayerReq)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(GameServer).GetUser(ctx, in)
+		return srv.(GameServer).GetPlayer(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Game_GetUser_FullMethodName,
+		FullMethod: Game_GetPlayer_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GameServer).GetUser(ctx, req.(*GetUserReq))
+		return srv.(GameServer).GetPlayer(ctx, req.(*GetPlayerReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -215,7 +215,7 @@ func _Game_Join_Handler(srv interface{}, stream grpc.ServerStream) error {
 }
 
 type Game_JoinServer interface {
-	Send(*UserConn) error
+	Send(*PlayerConn) error
 	grpc.ServerStream
 }
 
@@ -223,7 +223,7 @@ type gameJoinServer struct {
 	grpc.ServerStream
 }
 
-func (x *gameJoinServer) Send(m *UserConn) error {
+func (x *gameJoinServer) Send(m *PlayerConn) error {
 	return x.ServerStream.SendMsg(m)
 }
 
@@ -232,7 +232,7 @@ func _Game_Move_Handler(srv interface{}, stream grpc.ServerStream) error {
 }
 
 type Game_MoveServer interface {
-	Send(*UserMove) error
+	Send(*PlayerMove) error
 	Recv() (*Pos, error)
 	grpc.ServerStream
 }
@@ -241,7 +241,7 @@ type gameMoveServer struct {
 	grpc.ServerStream
 }
 
-func (x *gameMoveServer) Send(m *UserMove) error {
+func (x *gameMoveServer) Send(m *PlayerMove) error {
 	return x.ServerStream.SendMsg(m)
 }
 
@@ -265,8 +265,8 @@ var Game_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _Game_Hello_Handler,
 		},
 		{
-			MethodName: "GetUser",
-			Handler:    _Game_GetUser_Handler,
+			MethodName: "GetPlayer",
+			Handler:    _Game_GetPlayer_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

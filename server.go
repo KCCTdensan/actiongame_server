@@ -22,20 +22,35 @@ func (*GameServer) Hello(ctx context.Context, req *pb.HelloReq) (*pb.HelloRes, e
 }
 
 func (*GameServer) Join(req *pb.JoinReq, stream pb.Game_JoinServer) error {
-	world, conn := Join(req.Name)
-	stream.Send(conn.ToPB())
+	world := GetWorld()
+	me := Register(req.Name)
+
+	stream.Send(&pb.PlayerConn{
+		Id:   uint32(me.id),
+		Type: pb.ConnState_JOIN,
+	})
+	for id := range world.players {
+		if id != me.id {
+			stream.Send(&pb.PlayerConn{
+				Id:   uint32(id),
+				Type: pb.ConnState_SPAWN,
+			})
+		}
+	}
 
 	// todo: まともにする
 	room := make(chan *PlayerConn)
 	world.room.Sub(func(conn *PlayerConn) { room <- conn })
-	<-room // ひどい
+
+	Join(me)
+	<-room // 自分のJOINは無視
 
 	for {
 		select {
 		case conn := <-room:
 			stream.Send(conn.ToPB())
 		case <-stream.Context().Done():
-			Leave(conn.id)
+			Leave(me.id)
 			return nil
 		}
 	}
@@ -67,13 +82,13 @@ func (*GameServer) Move(stream pb.Game_MoveServer) error {
 			if err != nil {
 				break // err
 			}
-			world.room.Pub(&pb.UserMove{Id: uint32(uid), Pos: pos})
+			world.room.Pub(&pb.PlayerMove{Id: uint32(uid), Pos: pos})
 			fmt.Println(uid, pos) /////////////////////////////////////////
 		}
 	}()
 
 	// send to client
-	world.room.Sub(func(move *pb.UserMove) {
+	world.room.Sub(func(move *pb.PlayerMove) {
 		stream.Send(move)
 	})
 

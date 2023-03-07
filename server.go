@@ -2,8 +2,12 @@ package actiongame
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
+	"strconv"
+
+	"google.golang.org/grpc/metadata"
 
 	pb "actiongame/proto"
 )
@@ -21,23 +25,36 @@ func (*GameServer) Join(req *pb.JoinReq, stream pb.Game_JoinServer) error {
 	world, conn := Join(req.Name)
 	stream.Send(conn.ToPB())
 
+	// todo: まともにする
 	room := make(chan *PlayerConn)
 	world.room.Sub(func(conn *PlayerConn) { room <- conn })
+	<-room // ひどい
 
 	for {
 		select {
+		case conn := <-room:
+			stream.Send(conn.ToPB())
 		case <-stream.Context().Done():
 			Leave(conn.id)
 			return nil
-		case conn := <-room:
-			stream.Send(conn.ToPB())
 		}
 	}
 }
 
 func (*GameServer) Move(stream pb.Game_MoveServer) error {
-	// get user id from context
-	uid := uint32(0) //
+	md, ok := metadata.FromIncomingContext(stream.Context())
+	if !ok {
+		return errors.New("no metadata")
+	}
+	if len(md["id"]) == 0 {
+		return errors.New("no id")
+	}
+
+	uid, err := strconv.Atoi(md["id"][0])
+	if err != nil {
+		return err
+	}
+
 	world := GetWorld()
 
 	// recv from client
@@ -50,15 +67,16 @@ func (*GameServer) Move(stream pb.Game_MoveServer) error {
 			if err != nil {
 				break // err
 			}
-			world.room.Pub(pos)
+			world.room.Pub(&pb.UserMove{Id: uint32(uid), Pos: pos})
+			fmt.Println(uid, pos) /////////////////////////////////////////
 		}
-		// close connection
 	}()
 
 	// send to client
-	world.room.Sub(func(pos *pb.Pos) {
-		for {
-			stream.Send(&pb.UserMove{Id: uid, Pos: pos})
-		}
+	world.room.Sub(func(move *pb.UserMove) {
+		stream.Send(move)
 	})
+
+	<-stream.Context().Done()
+	return nil
 }

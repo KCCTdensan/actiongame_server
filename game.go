@@ -1,6 +1,7 @@
 package actiongame
 
 import (
+	"fmt"
 	"math/rand"
 
 	"github.com/mattn/go-pubsub"
@@ -19,29 +20,26 @@ type Player struct {
 	name string
 }
 
-type State byte
-
-const (
-	STATE_JOIN State = iota
-	STATE_LEAVE
-)
-
 type PlayerConn struct {
 	id    Uid
-	state State
+	state pb.ConnState
 }
 
 func (c *PlayerConn) ToPB() *pb.UserConn {
-	return &pb.UserConn{Id: uint32(c.id)}
+	return &pb.UserConn{
+		Type: pb.ConnState(c.state),
+		Id:   uint32(c.id),
+	}
 }
 
 var (
 	world = &World{
-		room: pubsub.New(),
+		players: make(map[Uid]*Player),
+		room:    pubsub.New(),
 	}
 )
 
-func GetWorld( /* id */ ) *World {
+func GetWorld() *World {
 	return world
 }
 
@@ -55,12 +53,15 @@ func Join(name string) (*World, *PlayerConn) {
 		}
 	}
 	world.players[id] = &Player{name}
-	conn := &PlayerConn{id, STATE_JOIN}
+	conn := &PlayerConn{id, pb.ConnState_JOIN}
+	fmt.Println("joined", name, "<>", world.players)
 	world.room.Pub(conn)
-	return world, conn
+	return world, conn // connはserverstream用
 }
 
 func Leave(id Uid) {
+	name := world.players[id].name
 	delete(world.players, id)
-	world.room.Pub(&PlayerConn{id, STATE_LEAVE})
+	fmt.Println("leave", name, "<>", world.players)
+	world.room.Pub(&PlayerConn{id, pb.ConnState_LEAVE})
 }

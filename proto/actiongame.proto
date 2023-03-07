@@ -45,14 +45,23 @@ message JoinReq {
   string name = 1;
 }
 
+enum ConnState {
+  JOIN = 0;
+  LEAVE = 1;
+}
+
 message UserConn {
-  // enum type (con/discon)
-  uint32 id = 1;
+  ConnState type = 1;
+  uint32 id = 2;
 }
 
 message Pos {
   float x = 1;
   float y = 2;
+  float z = 3;
+  float rx = 4;
+  float ry = 5;
+  float rz = 6;
 }
 
 message UserMove {

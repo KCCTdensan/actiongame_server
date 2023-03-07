@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-option go_package = "./actiongame";
+option go_package = "actiongame/proto";
 
-package actiongame;
+package proto;
 
 service Game {
   rpc Hello (HelloReq) returns (HelloRes);

@@ -4,7 +4,7 @@
 // - protoc             v3.21.9
 // source: proto/actiongame.proto
 
-package actiongame
+package proto
 
 import (
 	context "context"
@@ -19,8 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	Game_Hello_FullMethodName       = "/actiongame.Game/Hello"
-	Game_JoinSession_FullMethodName = "/actiongame.Game/JoinSession"
+	Game_Hello_FullMethodName       = "/proto.Game/Hello"
+	Game_JoinSession_FullMethodName = "/proto.Game/JoinSession"
 )
 
 // GameClient is the client API for Game service.
@@ -129,7 +129,7 @@ func _Game_JoinSession_Handler(srv interface{}, ctx context.Context, dec func(in
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var Game_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "actiongame.Game",
+	ServiceName: "proto.Game",
 	HandlerType: (*GameServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

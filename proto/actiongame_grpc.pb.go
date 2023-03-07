@@ -19,16 +19,23 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	Game_Hello_FullMethodName       = "/proto.Game/Hello"
-	Game_JoinSession_FullMethodName = "/proto.Game/JoinSession"
+	Game_Hello_FullMethodName   = "/proto.Game/Hello"
+	Game_GetUser_FullMethodName = "/proto.Game/GetUser"
+	Game_Join_FullMethodName    = "/proto.Game/Join"
+	Game_Move_FullMethodName    = "/proto.Game/Move"
 )
 
 // GameClient is the client API for Game service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type GameClient interface {
+	// basic
 	Hello(ctx context.Context, in *HelloReq, opts ...grpc.CallOption) (*HelloRes, error)
-	JoinSession(ctx context.Context, in *JoinReq, opts ...grpc.CallOption) (*GameSession, error)
+	// global
+	GetUser(ctx context.Context, in *GetUserReq, opts ...grpc.CallOption) (*GetUserRes, error)
+	// game
+	Join(ctx context.Context, in *JoinReq, opts ...grpc.CallOption) (Game_JoinClient, error)
+	Move(ctx context.Context, opts ...grpc.CallOption) (Game_MoveClient, error)
 }
 
 type gameClient struct {
@@ -48,21 +55,89 @@ func (c *gameClient) Hello(ctx context.Context, in *HelloReq, opts ...grpc.CallO
 	return out, nil
 }
 
-func (c *gameClient) JoinSession(ctx context.Context, in *JoinReq, opts ...grpc.CallOption) (*GameSession, error) {
-	out := new(GameSession)
-	err := c.cc.Invoke(ctx, Game_JoinSession_FullMethodName, in, out, opts...)
+func (c *gameClient) GetUser(ctx context.Context, in *GetUserReq, opts ...grpc.CallOption) (*GetUserRes, error) {
+	out := new(GetUserRes)
+	err := c.cc.Invoke(ctx, Game_GetUser_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
+func (c *gameClient) Join(ctx context.Context, in *JoinReq, opts ...grpc.CallOption) (Game_JoinClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Game_ServiceDesc.Streams[0], Game_Join_FullMethodName, opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &gameJoinClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Game_JoinClient interface {
+	Recv() (*UserConn, error)
+	grpc.ClientStream
+}
+
+type gameJoinClient struct {
+	grpc.ClientStream
+}
+
+func (x *gameJoinClient) Recv() (*UserConn, error) {
+	m := new(UserConn)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *gameClient) Move(ctx context.Context, opts ...grpc.CallOption) (Game_MoveClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Game_ServiceDesc.Streams[1], Game_Move_FullMethodName, opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &gameMoveClient{stream}
+	return x, nil
+}
+
+type Game_MoveClient interface {
+	Send(*Pos) error
+	Recv() (*UserMove, error)
+	grpc.ClientStream
+}
+
+type gameMoveClient struct {
+	grpc.ClientStream
+}
+
+func (x *gameMoveClient) Send(m *Pos) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *gameMoveClient) Recv() (*UserMove, error) {
+	m := new(UserMove)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // GameServer is the server API for Game service.
 // All implementations must embed UnimplementedGameServer
 // for forward compatibility
 type GameServer interface {
+	// basic
 	Hello(context.Context, *HelloReq) (*HelloRes, error)
-	JoinSession(context.Context, *JoinReq) (*GameSession, error)
+	// global
+	GetUser(context.Context, *GetUserReq) (*GetUserRes, error)
+	// game
+	Join(*JoinReq, Game_JoinServer) error
+	Move(Game_MoveServer) error
 	mustEmbedUnimplementedGameServer()
 }
 
@@ -73,8 +148,14 @@ type UnimplementedGameServer struct {
 func (UnimplementedGameServer) Hello(context.Context, *HelloReq) (*HelloRes, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Hello not implemented")
 }
-func (UnimplementedGameServer) JoinSession(context.Context, *JoinReq) (*GameSession, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method JoinSession not implemented")
+func (UnimplementedGameServer) GetUser(context.Context, *GetUserReq) (*GetUserRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetUser not implemented")
+}
+func (UnimplementedGameServer) Join(*JoinReq, Game_JoinServer) error {
+	return status.Errorf(codes.Unimplemented, "method Join not implemented")
+}
+func (UnimplementedGameServer) Move(Game_MoveServer) error {
+	return status.Errorf(codes.Unimplemented, "method Move not implemented")
 }
 func (UnimplementedGameServer) mustEmbedUnimplementedGameServer() {}
 
@@ -107,22 +188,69 @@ func _Game_Hello_Handler(srv interface{}, ctx context.Context, dec func(interfac
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Game_JoinSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(JoinReq)
+func _Game_GetUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUserReq)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(GameServer).JoinSession(ctx, in)
+		return srv.(GameServer).GetUser(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Game_JoinSession_FullMethodName,
+		FullMethod: Game_GetUser_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GameServer).JoinSession(ctx, req.(*JoinReq))
+		return srv.(GameServer).GetUser(ctx, req.(*GetUserReq))
 	}
 	return interceptor(ctx, in, info, handler)
+}
+
+func _Game_Join_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(JoinReq)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(GameServer).Join(m, &gameJoinServer{stream})
+}
+
+type Game_JoinServer interface {
+	Send(*UserConn) error
+	grpc.ServerStream
+}
+
+type gameJoinServer struct {
+	grpc.ServerStream
+}
+
+func (x *gameJoinServer) Send(m *UserConn) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _Game_Move_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(GameServer).Move(&gameMoveServer{stream})
+}
+
+type Game_MoveServer interface {
+	Send(*UserMove) error
+	Recv() (*Pos, error)
+	grpc.ServerStream
+}
+
+type gameMoveServer struct {
+	grpc.ServerStream
+}
+
+func (x *gameMoveServer) Send(m *UserMove) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *gameMoveServer) Recv() (*Pos, error) {
+	m := new(Pos)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 // Game_ServiceDesc is the grpc.ServiceDesc for Game service.
@@ -137,10 +265,22 @@ var Game_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _Game_Hello_Handler,
 		},
 		{
-			MethodName: "JoinSession",
-			Handler:    _Game_JoinSession_Handler,
+			MethodName: "GetUser",
+			Handler:    _Game_GetUser_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "Join",
+			Handler:       _Game_Join_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "Move",
+			Handler:       _Game_Move_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
+		},
+	},
 	Metadata: "proto/actiongame.proto",
 }

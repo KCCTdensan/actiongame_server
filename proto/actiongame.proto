@@ -1,13 +1,24 @@
 syntax = "proto3";
 
-option go_package = "actiongame/proto";
-
 package proto;
 
+option go_package = "actiongame/proto";
+
 service Game {
-  rpc Hello (HelloReq) returns (HelloRes);
-  rpc JoinSession (JoinReq) returns (GameSession);
+  // basic
+  rpc Hello(HelloReq) returns (HelloRes);
+
+  // global
+  rpc GetUser(GetUserReq) returns (GetUserRes);
+
+  // game
+  rpc Join(JoinReq) returns (stream UserConn);
+  rpc Move(stream Pos) returns (stream UserMove);
 }
+
+// basic
+
+message Empty {}
 
 message HelloReq {
   string name = 1;
@@ -17,10 +28,34 @@ message HelloRes {
   string msg = 1;
 }
 
+// global
+
+message GetUserReq {
+  uint32 id = 1;
+}
+
+message GetUserRes {
+  uint32 id = 1;
+  string name = 2;
+}
+
+// game
+
 message JoinReq {
   string name = 1;
 }
 
-message GameSession {
-  string id = 1;
+message UserConn {
+  // enum type (con/discon)
+  uint32 id = 1;
+}
+
+message Pos {
+  float x = 1;
+  float y = 2;
+}
+
+message UserMove {
+  uint32 id = 1;
+  Pos pos = 2;
 }

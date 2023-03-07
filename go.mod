@@ -3,6 +3,7 @@ module actiongame
 go 1.17
 
 require (
+	github.com/mattn/go-pubsub v0.0.0-20160821075316-7a151c7747cd
 	google.golang.org/grpc v1.53.0
 	google.golang.org/protobuf v1.28.1
 )
